@@ -1,0 +1,5 @@
+{
+  "name": "Bookmeza Data Grid Library",
+  "description": "A feature-rich, responsive data grid component for React applications, built with Tailwind CSS. Includes CRUD operations, sorting, filtering, pagination, and CSV export.",
+  "requestFramePermissions": []
+}
