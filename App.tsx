@@ -1,10 +1,9 @@
-
 import React from 'react';
-import BookmezaExportSystem from './components/BookmezaExportSystem';
+import BookmezaDataGridDemo from './components/BookmezaDataGridDemo';
 
 const App: React.FC = () => {
   return (
-    <BookmezaExportSystem />
+    <BookmezaDataGridDemo />
   );
 };
 

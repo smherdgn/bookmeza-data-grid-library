@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { 
   ChevronLeft, ChevronRight, Search, Filter, Download, Eye, Edit, Trash2, Plus,
@@ -11,10 +10,11 @@ import BookmezaButton from './BookmezaButton';
 import BookmezaModal from './BookmezaModal';
 import ConfirmDialog from './ConfirmDialog';
 import AutoForm from './AutoForm';
+import BookmezaAdvancedExporter from './BookmezaAdvancedExporter'; // Import the new advanced exporter
 
 const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({ 
   data = [],
-  columnsConfig, // Allow passing custom columns
+  columnsConfig, 
   title = TEXTS.userManagementSystem,
   onEdit,
   onDelete,
@@ -25,7 +25,7 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[1]); // Default to 10
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[1]);
   const [filters, setFilters] = useState<Partial<Record<keyof SampleDataRow, string>>>({});
   const [showFilters, setShowFilters] = useState(false);
   
@@ -41,6 +41,7 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
   const [showEdit, setShowEdit] = useState(false);
   
   const [isMobile, setIsMobile] = useState(false);
+  const [showAdvancedExportModal, setShowAdvancedExportModal] = useState(false); // State for advanced export modal
 
   const columns = useMemo(() => columnsConfig || DEFAULT_COLUMNS, [columnsConfig]);
 
@@ -58,7 +59,7 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
       const lowerSearchTerm = searchTerm.toLowerCase();
       result = result.filter(row =>
         columns.some(col => {
-          if (col.searchable) { // Only search in designated columns
+          if (col.searchable) {
             if (col.key === 'user') {
               return `${row.firstName} ${row.lastName} ${row.email}`.toLowerCase().includes(lowerSearchTerm);
             }
@@ -66,7 +67,7 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
             return String(value).toLowerCase().includes(lowerSearchTerm);
           }
           return false;
-        }) || `${row.firstName} ${row.lastName} ${row.email} ${row.department}`.toLowerCase().includes(lowerSearchTerm) // fallback to original general search
+        }) || `${row.firstName} ${row.lastName} ${row.email} ${row.department}`.toLowerCase().includes(lowerSearchTerm)
       );
     }
 
@@ -130,37 +131,6 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
     });
   };
   
-  const handleExport = () => {
-    const headers = columns.map(col => col.label).join(',');
-    const rows = processedData.map(row => 
-      columns.map(col => {
-        let value: any;
-        if (col.key === 'user') {
-          value = `${row.firstName} ${row.lastName}`;
-        } else if (col.key === 'actions') {
-          return ''; // Skip actions column
-        }
-         else {
-          value = row[col.key as keyof SampleDataRow];
-        }
-        
-        if (typeof value === 'boolean') value = value ? TEXTS.yes : TEXTS.no;
-        return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-      }).filter(Boolean).join(',') // Filter out empty strings from actions
-    );
-    
-    const csvContent = "\uFEFF" + [headers, ...rows].join('\n'); // Add BOM for Excel
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title.replace(/\s+/g, '_')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  };
-
   const renderCell = useCallback((row: SampleDataRow, column: BookmezaColumn) => {
     const value = row[column.key as keyof SampleDataRow];
     
@@ -238,7 +208,7 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
               
               <BookmezaButton
                 variant="secondary"
-                onClick={handleExport}
+                onClick={() => setShowAdvancedExportModal(true)} // Open advanced export modal
                 icon={Download}
               >
                 {TEXTS.export}
@@ -443,7 +413,6 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
               
               <div className="flex items-center gap-1">
                 <BookmezaButton variant="ghost" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} icon={ChevronLeft} aria-label="Previous Page"><></></BookmezaButton>
-                {/* Basic pagination display - can be enhanced */}
                 {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                     let pageNum;
                     if (totalPages <= 3) pageNum = i + 1;
@@ -519,6 +488,14 @@ const BookmezaDataGrid: React.FC<BookmezaDataGridProps> = ({
         title={TEXTS.confirmDeleteTitle(`${deleteData.firstName} ${deleteData.lastName}`)}
         message={TEXTS.confirmDeleteMessage(`${deleteData.firstName} ${deleteData.lastName}`)}
       />}
+
+      {/* Advanced Export Modal */}
+      <BookmezaAdvancedExporter 
+        isOpen={showAdvancedExportModal}
+        onClose={() => setShowAdvancedExportModal(false)}
+        dataToExport={processedData} // Pass filtered and sorted data
+        gridColumnsDisplayed={columns} // Pass current grid column configuration
+      />
     </>
   );
 };
